@@ -140,3 +140,71 @@ export const deleteBlogController = async (req:any, res: express.Response) => {
         })
     }
 }
+
+export const updateBlogController = async (req: any, res: express.Response) => {
+    const {blogid} = req.params;
+    const {title, description} = req.body;
+
+    try {
+
+        if(title === "" || description === ""){
+            return res.status(400).json({
+                message: "Title or description cannot be empty"
+            })
+        }
+        if(!blogid){
+            return res.status(400).json({
+                message: "Blog id is required"
+            })
+        }
+
+        const blog = await Blog.findByIdAndUpdate(
+            blogid,
+            {
+            title,
+            description
+        },{new: true}); //new:true ka matlab hai updated blog return hoga, otherwise vo purana blog return karta hai
+
+
+        res.status(200).json({
+            message: "Blog updated successfully",
+            blog
+        })
+    } catch (error) {
+        console.error("Error in updating blog", error);
+        res.status(500).json({
+            message: "Internal server error"
+        })
+    }
+}
+
+export const paginationBlogController = async (req: express.Request, res: express.Response) => {
+    const page = parseInt(req.query.page as string) || 1; 
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const skip = (page - 1) * limit; //formula
+
+    try {
+        
+        const blogs = await Blog.find().skip(skip).limit(limit).sort({createdAt: -1}); //sort used for latest blogs first
+
+        const totalBlogs = await Blog.countDocuments();
+        const totalpages = Math.ceil(totalBlogs / limit);
+
+        res.status(200).json({
+            message: "Blogs fetched successfully",
+            blogs,
+            page,
+            totalpages,
+            totalBlogs,
+            hasNextPage: page < totalpages,
+            hasPrevPage: page > 1
+        })
+
+    } catch (error) {
+        console.error("Error in pagination blog controller", error);
+        res.status(500).json({
+            message: "Internal server error"
+        })      
+    }
+}
