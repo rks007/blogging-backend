@@ -3,6 +3,8 @@ import router from "./routes/index.route";
 import dotenv from "dotenv"
 import cookieparser from "cookie-parser"
 import connectDB from "./lib/db";
+import redisClient from "./lib/redis";
+import axios from "axios";
 
 dotenv.config();
 
@@ -18,8 +20,22 @@ connectDB().then(() => {
     });
 });
 
-app.get("/", (req, res) => {
-    res.send("hi there")
+
+
+app.get("/", async (req, res) => {
+    const cachedValue = await redisClient.get("todos");
+
+    if(cachedValue){
+        console.log("cached");
+        
+        return res.json({todos: JSON.parse(cachedValue)});
+    }
+
+    const response = await axios.get("https://jsonplaceholder.typicode.com/todos")
+
+    await redisClient.set("todos", JSON.stringify(response.data), "EX", 20 );//setting the value to expire in 20 seconds
+
+    res.json({todos: response.data})
 })
 
 app.use("/api/v1", router);

@@ -1,5 +1,6 @@
-import express from "express"
+import express, { json } from "express"
 import Blog from "../models/blog.model";
+import redisClient from "../lib/redis";
 
 export const createController = async (req: any, res: express.Response) => {
     const {title, description} = req.body;
@@ -25,6 +26,13 @@ export const createController = async (req: any, res: express.Response) => {
             description
         });
 
+        const redisBlog = JSON.stringify(blog);
+
+        await redisClient.lpush("blogs-list", redisBlog);
+
+        await redisClient.ltrim("blogs-list", 0, 9); //keep only latst 10 blogs
+
+
         res.status(201).json({
             message: "Blog created successfully",
             blog
@@ -33,6 +41,24 @@ export const createController = async (req: any, res: express.Response) => {
     } catch (error) {
         console.error("Error in create blog controller", error);
         res.status(500).json({
+            message: "Internal server error"
+        })
+    }
+}
+
+export const latestCacheBlogController = async (req: express.Request, res: express.Response) => {
+    try {
+        const rawCachedBlogs = await redisClient.lrange("blogs-list", 0, -1);
+
+        const cachedBlogs = rawCachedBlogs.map((blog) => JSON.parse(blog));
+
+        return res.status(201).json({
+            message: "Cached blogs fetched succesfully",
+            cachedBlogs
+        })
+    } catch (error) {
+        console.log("error while fetching cached blogs", error)
+        return res.status(500).json({
             message: "Internal server error"
         })
     }
