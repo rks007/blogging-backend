@@ -16,8 +16,8 @@ const authMiddleware = async (req: any, res: express.Response, next: express.Nex
 
         const user = await User.findById(decodedToken.userId).select("-password");
 
-        console.log("Decoded Token:", decodedToken);
-        console.log("User fetched from DB:", user);
+        // console.log("Decoded Token:", decodedToken);
+        // console.log("User fetched from DB:", user);
 
         if(!user){
             return res.status(401).json({
@@ -25,11 +25,11 @@ const authMiddleware = async (req: any, res: express.Response, next: express.Nex
             })
         }
 
-        console.log("User from auth middleware:", user);
+        // console.log("User from auth middleware:", user);
 
         req.user = user;
 
-        console.log("Request after auth middleware:", req.user);
+        // console.log("Request after auth middleware:", req.user);
 
         next();
 
